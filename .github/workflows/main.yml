@@ -98,7 +98,7 @@ jobs:
           foreach ($env in $allEnvironments) {
             $dbCount = $config.$env.Database.Count
             $dbList = $config.$env.Database -join ", "
-            echo "- **$env**: $dbCount database(s) → $dbList" >> $env:GITHUB_STEP_SUMMARY
+            echo "- **$env**: $dbCount database(s) - $dbList" >> $env:GITHUB_STEP_SUMMARY
           }
 
   # Environment-level approvals (parallel approvals for all environments)

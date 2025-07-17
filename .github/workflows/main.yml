@@ -1,9 +1,9 @@
 name: Database Deployment Pipeline
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
   workflow_dispatch:
     inputs:
       confirm_deployment:
@@ -19,7 +19,12 @@ jobs:
     outputs:
       environments: ${{ steps.create-matrix.outputs.environments }}
       approval-matrix: ${{ steps.create-matrix.outputs.approval-matrix }}
-      database-matrix: ${{ steps.create-matrix.outputs.database-matrix }}
+      dev2-databases: ${{ steps.create-matrix.outputs.dev2-databases }}
+      dev2all-databases: ${{ steps.create-matrix.outputs.dev2all-databases }}
+      qa2all-databases: ${{ steps.create-matrix.outputs.qa2all-databases }}
+      uatemeaall-databases: ${{ steps.create-matrix.outputs.uatemeaall-databases }}
+      uatnasaall-databases: ${{ steps.create-matrix.outputs.uatnasaall-databases }}
+      uatapacall-databases: ${{ steps.create-matrix.outputs.uatapacall-databases }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -54,27 +59,26 @@ jobs:
           $approvalMatrixJson = @{include = $approvalMatrix} | ConvertTo-Json -Compress
           echo "approval-matrix=$approvalMatrixJson" >> $env:GITHUB_OUTPUT
           
-          # Create database deployment matrix
-          $databaseMatrix = @()
+          # Create database matrices for each environment
           foreach ($env in $allEnvironments) {
             $databases = $config.$env.Database
             Write-Host "$env environment has databases: $($databases -join ', ')"
             
+            # Create database matrix for this environment
+            $databaseMatrix = @()
             foreach ($db in $databases) {
               $databaseMatrix += @{
                 environment = $env
                 database = $db
-                job_name = "deploy-$($env.ToLower())-$($db.ToLower())"
-                approval_job = "approve-$($env.ToLower())"
               }
             }
+            $databaseMatrixJson = @{include = $databaseMatrix} | ConvertTo-Json -Compress
+            $envLower = $env.ToLower()
+            echo "$envLower-databases=$databaseMatrixJson" >> $env:GITHUB_OUTPUT
           }
-          $databaseMatrixJson = @{include = $databaseMatrix} | ConvertTo-Json -Compress
-          echo "database-matrix=$databaseMatrixJson" >> $env:GITHUB_OUTPUT
           
           Write-Host "Matrix created successfully"
           Write-Host "Total environments: $($allEnvironments.Count)"
-          Write-Host "Total databases: $($databaseMatrix.Count)"
 
   # Dynamic environment approvals
   approve-environments:
@@ -91,81 +95,150 @@ jobs:
           echo "Approval granted for ${{ matrix.environment }} environment"
           echo "This approval covers all databases in ${{ matrix.environment }}"
 
-  # Dynamic database deployments
-  deploy-databases:
+  # DEV2 Database Deployments
+  deploy-dev2-databases:
     runs-on: windows-latest
     needs: [setup, approve-environments]
+    if: contains(fromJson(needs.setup.outputs.environments), 'DEV2')
     strategy:
-      matrix: ${{ fromJson(needs.setup.outputs.database-matrix) }}
+      matrix: ${{ fromJson(needs.setup.outputs.dev2-databases) }}
       fail-fast: false
-      max-parallel: 3
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Wait for environment approval
+      - name: Deploy ${{ matrix.database }} to DEV2
         run: |
-          echo "Waiting for ${{ matrix.environment }} environment approval to complete"
-          echo "Deploying ${{ matrix.database }} to ${{ matrix.environment }}"
-      
-      - name: Pre-deployment validation
-        run: |
-          echo "Running pre-deployment validation for ${{ matrix.database }}"
+          echo "Starting deployment of ${{ matrix.database }} to DEV2"
           echo "Environment: ${{ matrix.environment }}"
           echo "Database: ${{ matrix.database }}"
-          # Add your pre-deployment validation steps here
-      
-      - name: Deploy ${{ matrix.database }} to ${{ matrix.environment }}
-        run: |
-          echo "Starting deployment of ${{ matrix.database }} to ${{ matrix.environment }}"
-          # Add your main deployment steps here
-          # Example:
+          # Add your deployment steps here
           # - uses: ./.github/actions/deploy-database
           #   with:
           #     database-name: ${{ matrix.database }}
           #     environment: ${{ matrix.environment }}
-          #     connection-string: ${{ secrets[format('{0}_{1}_CONNECTION_STRING', matrix.environment, matrix.database)] }}
+          #     connection-string: ${{ secrets[format('DEV2_{0}_CONNECTION_STRING', matrix.database)] }}
           echo "Deployment completed successfully"
+
+  # DEV2ALL Database Deployments
+  deploy-dev2all-databases:
+    runs-on: windows-latest
+    needs: [setup, approve-environments]
+    if: contains(fromJson(needs.setup.outputs.environments), 'DEV2ALL')
+    strategy:
+      matrix: ${{ fromJson(needs.setup.outputs.dev2all-databases) }}
+      fail-fast: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       
-      - name: Post-deployment validation
+      - name: Deploy ${{ matrix.database }} to DEV2ALL
         run: |
-          echo "Running post-deployment validation for ${{ matrix.database }}"
-          # Add your post-deployment validation steps here
-      
-      - name: Deployment summary for ${{ matrix.database }}
-        run: |
-          echo "Database: ${{ matrix.database }}"
+          echo "Starting deployment of ${{ matrix.database }} to DEV2ALL"
           echo "Environment: ${{ matrix.environment }}"
-          echo "Status: Success"
-          echo "Timestamp: $(date)"
+          echo "Database: ${{ matrix.database }}"
+          # Add your deployment steps here
+          echo "Deployment completed successfully"
+
+  # QA2ALL Database Deployments
+  deploy-qa2all-databases:
+    runs-on: windows-latest
+    needs: [setup, approve-environments]
+    if: contains(fromJson(needs.setup.outputs.environments), 'QA2ALL')
+    strategy:
+      matrix: ${{ fromJson(needs.setup.outputs.qa2all-databases) }}
+      fail-fast: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Deploy ${{ matrix.database }} to QA2ALL
+        run: |
+          echo "Starting deployment of ${{ matrix.database }} to QA2ALL"
+          echo "Environment: ${{ matrix.environment }}"
+          echo "Database: ${{ matrix.database }}"
+          # Add your deployment steps here
+          echo "Deployment completed successfully"
+
+  # UATEMEAALL Database Deployments
+  deploy-uatemeaall-databases:
+    runs-on: windows-latest
+    needs: [setup, approve-environments]
+    if: contains(fromJson(needs.setup.outputs.environments), 'UATEMEAALL')
+    strategy:
+      matrix: ${{ fromJson(needs.setup.outputs.uatemeaall-databases) }}
+      fail-fast: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Deploy ${{ matrix.database }} to UATEMEAALL
+        run: |
+          echo "Starting deployment of ${{ matrix.database }} to UATEMEAALL"
+          echo "Environment: ${{ matrix.environment }}"
+          echo "Database: ${{ matrix.database }}"
+          # Add your deployment steps here
+          echo "Deployment completed successfully"
+
+  # UATNASAALL Database Deployments
+  deploy-uatnasaall-databases:
+    runs-on: windows-latest
+    needs: [setup, approve-environments]
+    if: contains(fromJson(needs.setup.outputs.environments), 'UATNASAALL')
+    strategy:
+      matrix: ${{ fromJson(needs.setup.outputs.uatnasaall-databases) }}
+      fail-fast: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Deploy ${{ matrix.database }} to UATNASAALL
+        run: |
+          echo "Starting deployment of ${{ matrix.database }} to UATNASAALL"
+          echo "Environment: ${{ matrix.environment }}"
+          echo "Database: ${{ matrix.database }}"
+          # Add your deployment steps here
+          echo "Deployment completed successfully"
+
+  # UATAPACALL Database Deployments
+  deploy-uatapacall-databases:
+    runs-on: windows-latest
+    needs: [setup, approve-environments]
+    if: contains(fromJson(needs.setup.outputs.environments), 'UATAPACALL')
+    strategy:
+      matrix: ${{ fromJson(needs.setup.outputs.uatapacall-databases) }}
+      fail-fast: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Deploy ${{ matrix.database }} to UATAPACALL
+        run: |
+          echo "Starting deployment of ${{ matrix.database }} to UATAPACALL"
+          echo "Environment: ${{ matrix.environment }}"
+          echo "Database: ${{ matrix.database }}"
+          # Add your deployment steps here
+          echo "Deployment completed successfully"
 
   # Final deployment summary
   deployment-summary:
     runs-on: windows-latest
-    needs: [setup, deploy-databases]
+    needs: [
+      setup,
+      deploy-dev2-databases,
+      deploy-dev2all-databases,
+      deploy-qa2all-databases,
+      deploy-uatemeaall-databases,
+      deploy-uatnasaall-databases,
+      deploy-uatapacall-databases
+    ]
     if: always()
     steps:
       - name: Overall Deployment Summary
         shell: powershell
         run: |
-          $deploymentStatus = "${{ needs.deploy-databases.result }}"
-          $environments = '${{ needs.setup.outputs.environments }}' | ConvertFrom-Json
-          
           Write-Host "============================================"
           Write-Host "DEPLOYMENT SUMMARY"
           Write-Host "============================================"
-          Write-Host "Total Environments: $($environments.Count)"
-          Write-Host "Deployment Status: $deploymentStatus"
-          Write-Host ""
-          Write-Host "Environments processed:"
-          foreach ($env in $environments) {
-            Write-Host "- $env"
-          }
-          
-          if ($deploymentStatus -eq "success") {
-            Write-Host ""
-            Write-Host "All database deployments completed successfully!"
-          } elseif ($deploymentStatus -eq "failure") {
-            Write-Host ""
-            Write-Host "Some deployments failed. Check individual job logs for details."
-          }
+          Write-Host "All database deployment jobs completed"
+          Write-Host "Check individual job results for details"

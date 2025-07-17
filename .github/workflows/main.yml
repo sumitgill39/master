@@ -1,9 +1,9 @@
 name: Database Deployment Matrix - All Environments
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
   workflow_dispatch:
     inputs:
       deploy_all_environments:
@@ -54,10 +54,10 @@ jobs:
           
           # Create environment matrix (for approvals)
           $environmentMatrix = @()
-          foreach ($env in $allEnvironments) {
+          foreach ($environment in $allEnvironments) {
             $environmentMatrix += @{
-              environment = $env
-              database_count = $config.$env.Database.Count
+              environment = $environment
+              database_count = $config.$environment.Database.Count
             }
           }
           $envMatrixJson = @{include = $environmentMatrix} | ConvertTo-Json -Compress
@@ -67,16 +67,16 @@ jobs:
           $databaseMatrix = @()
           $totalDatabases = 0
           
-          foreach ($env in $allEnvironments) {
-            $databases = $config.$env.Database
+          foreach ($environment in $allEnvironments) {
+            $databases = $config.$environment.Database
             $totalDatabases += $databases.Count
             
             foreach ($db in $databases) {
               $databaseMatrix += @{
-                environment = $env
+                environment = $environment
                 database = $db
-                stage = "$env-$db"
-                approval_env = "$env-approval"
+                stage = "$environment-$db"
+                approval_env = "$environment-approval"
               }
             }
           }
@@ -95,10 +95,10 @@ jobs:
           echo "" >> $env:GITHUB_STEP_SUMMARY
           echo "### 📋 Environment Breakdown:" >> $env:GITHUB_STEP_SUMMARY
           
-          foreach ($env in $allEnvironments) {
-            $dbCount = $config.$env.Database.Count
-            $dbList = $config.$env.Database -join ", "
-            echo "- **$env**: $dbCount database(s) - $dbList" >> $env:GITHUB_STEP_SUMMARY
+          foreach ($environment in $allEnvironments) {
+            $dbCount = $config.$environment.Database.Count
+            $dbList = $config.$environment.Database -join ", "
+            echo "- **$environment**: $dbCount database(s) - $dbList" >> $env:GITHUB_STEP_SUMMARY
           }
 
   # Environment-level approvals (parallel approvals for all environments)

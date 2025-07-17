@@ -1,0 +1,20 @@
+{
+  "DEV2": {
+    "Database": ["Database1"]
+  },
+  "DEV2ALL": {
+    "Database": ["Database1", "Database2", "Database3"]
+  },
+  "QA2ALL": {
+    "Database": ["DatabaseA", "DatabaseB", "DatabaseC"]
+  },
+  "UATEMEAALL": {
+    "Database": ["DatabaseX", "DatabaseY"]
+  },
+  "UATNASAALL": {
+    "Database": ["DatabaseP", "DatabaseQ", "DatabaseR"]
+  },
+  "UATAPACALL": {
+    "Database": ["DatabaseM", "DatabaseN"]
+  }
+}

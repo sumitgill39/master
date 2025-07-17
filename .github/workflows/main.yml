@@ -121,7 +121,7 @@ jobs:
             #   with:
             #     database-name: $database
             #     environment: $environment
-            #     connection-string: ${{ secrets[format('{0}_{1}_CONNECTION_STRING', environment, database)] }}
+            #     connection-string: "Use secrets with static names or pass as env vars"
             
             Write-Host "     -> Step 4: Post-deployment validation"
             # Add your post-deployment steps here

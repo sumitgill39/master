@@ -1,9 +1,9 @@
 name: Database Deployment Pipeline
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
   workflow_dispatch:
     inputs:
       confirm_deployment:

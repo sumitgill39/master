@@ -13,10 +13,11 @@ on:
         default: false
 
 jobs:
-  # Generate matrix from JSON config
-  setup-matrix:
+  # Setup and read configuration
+  setup:
     runs-on: windows-latest
     outputs:
+      matrix: ${{ steps.create-matrix.outputs.matrix }}
       environments: ${{ steps.create-matrix.outputs.environments }}
     steps:
       - name: Checkout code
@@ -35,285 +36,129 @@ jobs:
           $config = Get-Content -Path ".github/config/database-config.json" | ConvertFrom-Json
           $allEnvironments = $config.PSObject.Properties.Name
           
-          # Create environment array for matrix
-          $environmentArray = @()
+          # Create matrix for environment deployments
+          $matrixArray = @()
           foreach ($env in $allEnvironments) {
-            $environmentArray += $env
+            $databases = $config.$env.Database
+            $matrixArray += @{
+              environment = $env
+              databases = $databases
+            }
           }
           
-          $environmentsJson = $environmentArray | ConvertTo-Json -Compress
+          $matrixJson = @{include = $matrixArray} | ConvertTo-Json -Compress
+          echo "matrix=$matrixJson" >> $env:GITHUB_OUTPUT
+          
+          # Output environments array for approvals
+          $environmentsJson = $allEnvironments | ConvertTo-Json -Compress
           echo "environments=$environmentsJson" >> $env:GITHUB_OUTPUT
           
-          Write-Host "Environments to deploy: $($allEnvironments -join ', ')"
+          Write-Host "Environments found: $($allEnvironments -join ', ')"
+          
+          # Display structure
+          foreach ($env in $allEnvironments) {
+            $dbCount = $config.$env.Database.Count
+            Write-Host "$env ($dbCount databases)"
+            foreach ($db in $config.$env.Database) {
+              Write-Host "  -> $db"
+            }
+          }
 
-  # DEV2 Environment
-  approve-dev2:
+  # Environment approvals - one per environment
+  approve-environments:
     runs-on: windows-latest
-    needs: setup-matrix
-    if: contains(fromJson(needs.setup-matrix.outputs.environments), 'DEV2')
+    needs: setup
+    strategy:
+      matrix:
+        environment: ${{ fromJson(needs.setup.outputs.environments) }}
+      fail-fast: false
     environment: 
-      name: DEV2-approval
+      name: ${{ matrix.environment }}-approval
     steps:
-      - name: Approve DEV2 Environment
-        run: echo "Approval granted for DEV2 environment"
+      - name: Approve ${{ matrix.environment }}
+        run: echo "Approval granted for ${{ matrix.environment }} environment"
 
-  deploy-dev2-database1:
+  # Database deployments - grouped by environment
+  deploy-databases:
     runs-on: windows-latest
-    needs: [setup-matrix, approve-dev2]
-    if: needs.approve-dev2.result == 'success'
+    needs: [setup, approve-environments]
+    if: needs.approve-environments.result == 'success'
+    strategy:
+      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
+      fail-fast: false
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Deploy Database1 to DEV2
+      - name: Environment Setup - ${{ matrix.environment }}
         run: |
-          echo "Deploying Database1 to DEV2"
-          # Add your deployment steps here
-          # Example: Call your composite action or reusable workflow
-          # - uses: ./.github/actions/deploy-database
-          #   with:
-          #     database-name: Database1
-          #     environment: DEV2
-
-  # DEV2ALL Environment  
-  approve-dev2all:
-    runs-on: windows-latest
-    needs: setup-matrix
-    if: contains(fromJson(needs.setup-matrix.outputs.environments), 'DEV2ALL')
-    environment: 
-      name: DEV2ALL-approval
-    steps:
-      - name: Approve DEV2ALL Environment
-        run: echo "Approval granted for DEV2ALL environment"
-
-  deploy-dev2all-database1:
-    runs-on: windows-latest
-    needs: [setup-matrix, approve-dev2all]
-    if: needs.approve-dev2all.result == 'success'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+          echo "Setting up deployment for environment: ${{ matrix.environment }}"
+          echo "Databases to deploy: ${{ join(matrix.databases, ', ') }}"
       
-      - name: Deploy Database1 to DEV2ALL
+      - name: Deploy All Databases to ${{ matrix.environment }}
+        shell: powershell
         run: |
-          echo "Deploying Database1 to DEV2ALL"
-          # Add your deployment steps here
+          $environment = "${{ matrix.environment }}"
+          $databases = @(${{ toJson(matrix.databases) }})
+          
+          Write-Host "============================================"
+          Write-Host "ENVIRONMENT: $environment"
+          Write-Host "============================================"
+          
+          foreach ($database in $databases) {
+            Write-Host ""
+            Write-Host "  -> DATABASE: $database"
+            Write-Host "     -> Step 1: Pre-deployment validation"
+            # Add your pre-deployment steps here
+            
+            Write-Host "     -> Step 2: Database backup (if required)"
+            # Add your backup steps here
+            
+            Write-Host "     -> Step 3: Deploy database"
+            # Add your main deployment steps here
+            # Example:
+            # - uses: ./.github/actions/deploy-database
+            #   with:
+            #     database-name: $database
+            #     environment: $environment
+            #     connection-string: ${{ secrets[format('{0}_{1}_CONNECTION_STRING', environment, database)] }}
+            
+            Write-Host "     -> Step 4: Post-deployment validation"
+            # Add your post-deployment steps here
+            
+            Write-Host "     -> Step 5: Database deployment completed"
+            Write-Host ""
+          }
+          
+          Write-Host "All databases deployed successfully for $environment"
 
-  deploy-dev2all-database2:
-    runs-on: windows-latest
-    needs: [setup-matrix, approve-dev2all]
-    if: needs.approve-dev2all.result == 'success'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Deploy Database2 to DEV2ALL
-        run: |
-          echo "Deploying Database2 to DEV2ALL"
-          # Add your deployment steps here
-
-  deploy-dev2all-database3:
-    runs-on: windows-latest
-    needs: [setup-matrix, approve-dev2all]
-    if: needs.approve-dev2all.result == 'success'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Deploy Database3 to DEV2ALL
-        run: |
-          echo "Deploying Database3 to DEV2ALL"
-          # Add your deployment steps here
-
-  # QA2ALL Environment
-  approve-qa2all:
-    runs-on: windows-latest
-    needs: setup-matrix
-    if: contains(fromJson(needs.setup-matrix.outputs.environments), 'QA2ALL')
-    environment: 
-      name: QA2ALL-approval
-    steps:
-      - name: Approve QA2ALL Environment
-        run: echo "Approval granted for QA2ALL environment"
-
-  deploy-qa2all-databasea:
-    runs-on: windows-latest
-    needs: [setup-matrix, approve-qa2all]
-    if: needs.approve-qa2all.result == 'success'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Deploy DatabaseA to QA2ALL
-        run: |
-          echo "Deploying DatabaseA to QA2ALL"
-          # Add your deployment steps here
-
-  deploy-qa2all-databaseb:
-    runs-on: windows-latest
-    needs: [setup-matrix, approve-qa2all]
-    if: needs.approve-qa2all.result == 'success'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Deploy DatabaseB to QA2ALL
-        run: |
-          echo "Deploying DatabaseB to QA2ALL"
-          # Add your deployment steps here
-
-  deploy-qa2all-databasec:
-    runs-on: windows-latest
-    needs: [setup-matrix, approve-qa2all]
-    if: needs.approve-qa2all.result == 'success'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Deploy DatabaseC to QA2ALL
-        run: |
-          echo "Deploying DatabaseC to QA2ALL"
-          # Add your deployment steps here
-
-  # UATEMEAALL Environment
-  approve-uatemeaall:
-    runs-on: windows-latest
-    needs: setup-matrix
-    if: contains(fromJson(needs.setup-matrix.outputs.environments), 'UATEMEAALL')
-    environment: 
-      name: UATEMEAALL-approval
-    steps:
-      - name: Approve UATEMEAALL Environment
-        run: echo "Approval granted for UATEMEAALL environment"
-
-  deploy-uatemeaall-databasex:
-    runs-on: windows-latest
-    needs: [setup-matrix, approve-uatemeaall]
-    if: needs.approve-uatemeaall.result == 'success'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Deploy DatabaseX to UATEMEAALL
-        run: |
-          echo "Deploying DatabaseX to UATEMEAALL"
-          # Add your deployment steps here
-
-  deploy-uatemeaall-databasey:
-    runs-on: windows-latest
-    needs: [setup-matrix, approve-uatemeaall]
-    if: needs.approve-uatemeaall.result == 'success'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Deploy DatabaseY to UATEMEAALL
-        run: |
-          echo "Deploying DatabaseY to UATEMEAALL"
-          # Add your deployment steps here
-
-  # UATNASAALL Environment
-  approve-uatnasaall:
-    runs-on: windows-latest
-    needs: setup-matrix
-    if: contains(fromJson(needs.setup-matrix.outputs.environments), 'UATNASAALL')
-    environment: 
-      name: UATNASAALL-approval
-    steps:
-      - name: Approve UATNASAALL Environment
-        run: echo "Approval granted for UATNASAALL environment"
-
-  deploy-uatnasaall-databasep:
-    runs-on: windows-latest
-    needs: [setup-matrix, approve-uatnasaall]
-    if: needs.approve-uatnasaall.result == 'success'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Deploy DatabaseP to UATNASAALL
-        run: |
-          echo "Deploying DatabaseP to UATNASAALL"
-          # Add your deployment steps here
-
-  deploy-uatnasaall-databaseq:
-    runs-on: windows-latest
-    needs: [setup-matrix, approve-uatnasaall]
-    if: needs.approve-uatnasaall.result == 'success'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Deploy DatabaseQ to UATNASAALL
-        run: |
-          echo "Deploying DatabaseQ to UATNASAALL"
-          # Add your deployment steps here
-
-  deploy-uatnasaall-databaser:
-    runs-on: windows-latest
-    needs: [setup-matrix, approve-uatnasaall]
-    if: needs.approve-uatnasaall.result == 'success'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Deploy DatabaseR to UATNASAALL
-        run: |
-          echo "Deploying DatabaseR to UATNASAALL"
-          # Add your deployment steps here
-
-  # UATAPACALL Environment
-  approve-uatapacall:
-    runs-on: windows-latest
-    needs: setup-matrix
-    if: contains(fromJson(needs.setup-matrix.outputs.environments), 'UATAPACALL')
-    environment: 
-      name: UATAPACALL-approval
-    steps:
-      - name: Approve UATAPACALL Environment
-        run: echo "Approval granted for UATAPACALL environment"
-
-  deploy-uatapacall-databasem:
-    runs-on: windows-latest
-    needs: [setup-matrix, approve-uatapacall]
-    if: needs.approve-uatapacall.result == 'success'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Deploy DatabaseM to UATAPACALL
-        run: |
-          echo "Deploying DatabaseM to UATAPACALL"
-          # Add your deployment steps here
-
-  deploy-uatapacall-databausen:
-    runs-on: windows-latest
-    needs: [setup-matrix, approve-uatapacall]
-    if: needs.approve-uatapacall.result == 'success'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Deploy DatabaseN to UATAPACALL
-        run: |
-          echo "Deploying DatabaseN to UATAPACALL"
-          # Add your deployment steps here
-
-  # Summary job
+  # Summary
   deployment-summary:
     runs-on: windows-latest
-    needs: [
-      setup-matrix,
-      deploy-dev2-database1,
-      deploy-dev2all-database1, deploy-dev2all-database2, deploy-dev2all-database3,
-      deploy-qa2all-databasea, deploy-qa2all-databaseb, deploy-qa2all-databasec,
-      deploy-uatemeaall-databasex, deploy-uatemeaall-databasey,
-      deploy-uatnasaall-databasep, deploy-uatnasaall-databaseq, deploy-uatnasaall-databaser,
-      deploy-uatapacall-databasem, deploy-uatapacall-databausen
-    ]
+    needs: [setup, deploy-databases]
     if: always()
     steps:
       - name: Deployment Summary
+        shell: powershell
         run: |
-          echo "Deployment completed for all environments"
-          echo "Check individual job results for details"
+          $environments = '${{ needs.setup.outputs.environments }}' | ConvertFrom-Json
+          $deploymentStatus = "${{ needs.deploy-databases.result }}"
+          
+          Write-Host "============================================"
+          Write-Host "DEPLOYMENT SUMMARY"
+          Write-Host "============================================"
+          Write-Host "Total Environments: $($environments.Count)"
+          Write-Host "Deployment Status: $deploymentStatus"
+          Write-Host ""
+          
+          foreach ($env in $environments) {
+            Write-Host "$env : $deploymentStatus"
+          }
+          
+          if ($deploymentStatus -eq "success") {
+            Write-Host ""
+            Write-Host "All environments deployed successfully!"
+          } elseif ($deploymentStatus -eq "failure") {
+            Write-Host ""
+            Write-Host "Some deployments failed. Check individual job logs."
+          }

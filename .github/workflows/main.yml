@@ -18,7 +18,6 @@ jobs:
     runs-on: windows-latest
     outputs:
       environments: ${{ steps.create-matrix.outputs.environments }}
-      approval-matrix: ${{ steps.create-matrix.outputs.approval-matrix }}
       dev2-databases: ${{ steps.create-matrix.outputs.dev2-databases }}
       dev2all-databases: ${{ steps.create-matrix.outputs.dev2all-databases }}
       qa2all-databases: ${{ steps.create-matrix.outputs.qa2all-databases }}
@@ -45,19 +44,9 @@ jobs:
           Write-Host "Reading configuration from JSON file..."
           Write-Host "Environments found: $($allEnvironments -join ', ')"
           
-          # Create environments array for approval matrix
+          # Create environments array
           $environmentsJson = $allEnvironments | ConvertTo-Json -Compress
           echo "environments=$environmentsJson" >> $env:GITHUB_OUTPUT
-          
-          # Create approval matrix
-          $approvalMatrix = @()
-          foreach ($env in $allEnvironments) {
-            $approvalMatrix += @{
-              environment = $env
-            }
-          }
-          $approvalMatrixJson = @{include = $approvalMatrix} | ConvertTo-Json -Compress
-          echo "approval-matrix=$approvalMatrixJson" >> $env:GITHUB_OUTPUT
           
           # Create database matrices for each environment
           foreach ($env in $allEnvironments) {
@@ -80,26 +69,66 @@ jobs:
           Write-Host "Matrix created successfully"
           Write-Host "Total environments: $($allEnvironments.Count)"
 
-  # Dynamic environment approvals
-  approve-environments:
+  # Individual environment approvals
+  approve-dev2:
     runs-on: windows-latest
     needs: setup
-    strategy:
-      matrix: ${{ fromJson(needs.setup.outputs.approval-matrix) }}
-      fail-fast: false
-    environment: 
-      name: ${{ matrix.environment }}-approval
+    if: contains(fromJson(needs.setup.outputs.environments), 'DEV2')
+    environment: DEV2-approval
     steps:
-      - name: Approve ${{ matrix.environment }} Environment
-        run: |
-          echo "Approval granted for ${{ matrix.environment }} environment"
-          echo "This approval covers all databases in ${{ matrix.environment }}"
+      - name: Approve DEV2 Environment
+        run: echo "Approval granted for DEV2 environment"
+
+  approve-dev2all:
+    runs-on: windows-latest
+    needs: setup
+    if: contains(fromJson(needs.setup.outputs.environments), 'DEV2ALL')
+    environment: DEV2ALL-approval
+    steps:
+      - name: Approve DEV2ALL Environment
+        run: echo "Approval granted for DEV2ALL environment"
+
+  approve-qa2all:
+    runs-on: windows-latest
+    needs: setup
+    if: contains(fromJson(needs.setup.outputs.environments), 'QA2ALL')
+    environment: QA2ALL-approval
+    steps:
+      - name: Approve QA2ALL Environment
+        run: echo "Approval granted for QA2ALL environment"
+
+  approve-uatemeaall:
+    runs-on: windows-latest
+    needs: setup
+    if: contains(fromJson(needs.setup.outputs.environments), 'UATEMEAALL')
+    environment: UATEMEAALL-approval
+    steps:
+      - name: Approve UATEMEAALL Environment
+        run: echo "Approval granted for UATEMEAALL environment"
+
+  approve-uatnasaall:
+    runs-on: windows-latest
+    needs: setup
+    if: contains(fromJson(needs.setup.outputs.environments), 'UATNASAALL')
+    environment: UATNASAALL-approval
+    steps:
+      - name: Approve UATNASAALL Environment
+        run: echo "Approval granted for UATNASAALL environment"
+
+  approve-uatapacall:
+    runs-on: windows-latest
+    needs: setup
+    if: contains(fromJson(needs.setup.outputs.environments), 'UATAPACALL')
+    environment: UATAPACALL-approval
+    steps:
+      - name: Approve UATAPACALL Environment
+        run: echo "Approval granted for UATAPACALL environment"
 
   # DEV2 Database Deployments
   deploy-dev2-databases:
     runs-on: windows-latest
-    needs: [setup, approve-environments]
-    if: contains(fromJson(needs.setup.outputs.environments), 'DEV2')
+    needs: [setup, approve-dev2]
+    if: needs.approve-dev2.result == 'success'
     strategy:
       matrix: ${{ fromJson(needs.setup.outputs.dev2-databases) }}
       fail-fast: false
@@ -123,8 +152,8 @@ jobs:
   # DEV2ALL Database Deployments
   deploy-dev2all-databases:
     runs-on: windows-latest
-    needs: [setup, approve-environments]
-    if: contains(fromJson(needs.setup.outputs.environments), 'DEV2ALL')
+    needs: [setup, approve-dev2all]
+    if: needs.approve-dev2all.result == 'success'
     strategy:
       matrix: ${{ fromJson(needs.setup.outputs.dev2all-databases) }}
       fail-fast: false
@@ -143,8 +172,8 @@ jobs:
   # QA2ALL Database Deployments
   deploy-qa2all-databases:
     runs-on: windows-latest
-    needs: [setup, approve-environments]
-    if: contains(fromJson(needs.setup.outputs.environments), 'QA2ALL')
+    needs: [setup, approve-qa2all]
+    if: needs.approve-qa2all.result == 'success'
     strategy:
       matrix: ${{ fromJson(needs.setup.outputs.qa2all-databases) }}
       fail-fast: false
@@ -163,8 +192,8 @@ jobs:
   # UATEMEAALL Database Deployments
   deploy-uatemeaall-databases:
     runs-on: windows-latest
-    needs: [setup, approve-environments]
-    if: contains(fromJson(needs.setup.outputs.environments), 'UATEMEAALL')
+    needs: [setup, approve-uatemeaall]
+    if: needs.approve-uatemeaall.result == 'success'
     strategy:
       matrix: ${{ fromJson(needs.setup.outputs.uatemeaall-databases) }}
       fail-fast: false
@@ -183,8 +212,8 @@ jobs:
   # UATNASAALL Database Deployments
   deploy-uatnasaall-databases:
     runs-on: windows-latest
-    needs: [setup, approve-environments]
-    if: contains(fromJson(needs.setup.outputs.environments), 'UATNASAALL')
+    needs: [setup, approve-uatnasaall]
+    if: needs.approve-uatnasaall.result == 'success'
     strategy:
       matrix: ${{ fromJson(needs.setup.outputs.uatnasaall-databases) }}
       fail-fast: false
@@ -203,8 +232,8 @@ jobs:
   # UATAPACALL Database Deployments
   deploy-uatapacall-databases:
     runs-on: windows-latest
-    needs: [setup, approve-environments]
-    if: contains(fromJson(needs.setup.outputs.environments), 'UATAPACALL')
+    needs: [setup, approve-uatapacall]
+    if: needs.approve-uatapacall.result == 'success'
     strategy:
       matrix: ${{ fromJson(needs.setup.outputs.uatapacall-databases) }}
       fail-fast: false

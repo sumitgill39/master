@@ -37,7 +37,7 @@ jobs:
         run: |
           # Validate confirmation for workflow_dispatch
           if ("${{ github.event_name }}" -eq "workflow_dispatch" -and "${{ github.event.inputs.confirm_deployment }}" -eq "false") {
-            Write-Error "Deployment confirmation required. Please check 'Confirm you want to deploy to ALL environments' checkbox."
+            Write-Error "Deployment confirmation required. Please check confirm deployment checkbox."
             exit 1
           }
           
@@ -89,17 +89,16 @@ jobs:
           Write-Host "Generated database matrix for $totalDatabases total databases"
           
           # Display deployment plan
-          echo "## 🚀 Complete Deployment Plan" >> $env:GITHUB_STEP_SUMMARY
-          echo "**Total Environments:** $($allEnvironments.Count)" >> $env:GITHUB_STEP_SUMMARY
-          echo "**Total Databases:** $totalDatabases" >> $env:GITHUB_STEP_SUMMARY
+          echo "## Complete Deployment Plan" >> $env:GITHUB_STEP_SUMMARY
+          echo "Total Environments: $($allEnvironments.Count)" >> $env:GITHUB_STEP_SUMMARY
+          echo "Total Databases: $totalDatabases" >> $env:GITHUB_STEP_SUMMARY
           echo "" >> $env:GITHUB_STEP_SUMMARY
-          echo "### 📋 Environment Breakdown:" >> $env:GITHUB_STEP_SUMMARY
+          echo "### Environment Breakdown:" >> $env:GITHUB_STEP_SUMMARY
           
           foreach ($environment in $allEnvironments) {
             $dbCount = $config.$environment.Database.Count
             $dbList = $config.$environment.Database -join ", "
-            $line = "- **$environment**: $dbCount databases - $dbList"
-            echo $line >> $env:GITHUB_STEP_SUMMARY
+            echo "- $environment : $dbCount databases - $dbList" >> $env:GITHUB_STEP_SUMMARY
           }
 
   # Environment-level approvals (parallel approvals for all environments)
@@ -119,22 +118,22 @@ jobs:
           $environment = "${{ matrix.environment }}"
           $dbCount = "${{ matrix.database_count }}"
           
-          Write-Host "🔐 Requesting approval for environment: $environment"
-          Write-Host "📊 Databases in this environment: $dbCount"
+          Write-Host "Requesting approval for environment: $environment"
+          Write-Host "Databases in this environment: $dbCount"
           
-          echo "## 🌍 Environment: $environment" >> $env:GITHUB_STEP_SUMMARY
-          echo "**Database Count:** $dbCount" >> $env:GITHUB_STEP_SUMMARY
-          echo "**Approval Environment:** \`$environment-approval\`" >> $env:GITHUB_STEP_SUMMARY
-          echo "**Status:** Awaiting approval for deployment" >> $env:GITHUB_STEP_SUMMARY
+          echo "## Environment: $environment" >> $env:GITHUB_STEP_SUMMARY
+          echo "Database Count: $dbCount" >> $env:GITHUB_STEP_SUMMARY
+          echo "Approval Environment: $environment-approval" >> $env:GITHUB_STEP_SUMMARY
+          echo "Status: Awaiting approval for deployment" >> $env:GITHUB_STEP_SUMMARY
           echo "" >> $env:GITHUB_STEP_SUMMARY
-          echo "### ℹ️ What happens after approval:" >> $env:GITHUB_STEP_SUMMARY
-          echo "- All $dbCount database(s) in $environment will be deployed" >> $env:GITHUB_STEP_SUMMARY
+          echo "### What happens after approval:" >> $env:GITHUB_STEP_SUMMARY
+          echo "- All $dbCount databases in $environment will be deployed" >> $env:GITHUB_STEP_SUMMARY
           echo "- Each database will be deployed as a separate stage" >> $env:GITHUB_STEP_SUMMARY
           echo "- Deployment will include pre/post validation steps" >> $env:GITHUB_STEP_SUMMARY
           
           # Show this is part of a larger deployment
           echo "" >> $env:GITHUB_STEP_SUMMARY
-          echo "🔗 **Part of multi-environment deployment**" >> $env:GITHUB_STEP_SUMMARY
+          echo "Part of multi-environment deployment" >> $env:GITHUB_STEP_SUMMARY
           echo "- Total environments: ${{ needs.setup-matrix.outputs.total-environments }}" >> $env:GITHUB_STEP_SUMMARY
           echo "- Total databases across all environments: ${{ needs.setup-matrix.outputs.total-databases }}" >> $env:GITHUB_STEP_SUMMARY
 
@@ -152,22 +151,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: 🚀 Stage Setup - ${{ matrix.stage }}
+      - name: Stage Setup - ${{ matrix.stage }}
         shell: powershell
         run: |
           Write-Host "============================================"
-          Write-Host "🎯 STAGE: ${{ matrix.stage }}"
-          Write-Host "🌍 Environment: ${{ matrix.environment }}"
-          Write-Host "💾 Database: ${{ matrix.database }}"
-          Write-Host "🔐 Approval Env: ${{ matrix.approval_env }}"
+          Write-Host "STAGE: ${{ matrix.stage }}"
+          Write-Host "Environment: ${{ matrix.environment }}"
+          Write-Host "Database: ${{ matrix.database }}"
+          Write-Host "Approval Env: ${{ matrix.approval_env }}"
           Write-Host "============================================"
           
-          echo "## 🎭 Stage: ${{ matrix.stage }}" >> $env:GITHUB_STEP_SUMMARY
-          echo "**Environment:** ${{ matrix.environment }}" >> $env:GITHUB_STEP_SUMMARY
-          echo "**Database:** ${{ matrix.database }}" >> $env:GITHUB_STEP_SUMMARY
-          echo "**Approval Environment:** ${{ matrix.approval_env }}" >> $env:GITHUB_STEP_SUMMARY
+          echo "## Stage: ${{ matrix.stage }}" >> $env:GITHUB_STEP_SUMMARY
+          echo "Environment: ${{ matrix.environment }}" >> $env:GITHUB_STEP_SUMMARY
+          echo "Database: ${{ matrix.database }}" >> $env:GITHUB_STEP_SUMMARY
+          echo "Approval Environment: ${{ matrix.approval_env }}" >> $env:GITHUB_STEP_SUMMARY
       
-      - name: 🔍 Pre-deployment Validation
+      - name: Pre-deployment Validation
         shell: powershell
         run: |
           Write-Host "Running pre-deployment validation for ${{ matrix.database }} in ${{ matrix.environment }}"
@@ -178,9 +177,9 @@ jobs:
             Write-Warning "DACPAC not found at: $dacpacPath"
             # Create a dummy file for demo purposes - remove in production
             New-Item -Path $dacpacPath -ItemType File -Force | Out-Null
-            Write-Host "⚠️ Created dummy DACPAC for demo purposes"
+            Write-Host "Created dummy DACPAC for demo purposes"
           } else {
-            Write-Host "✅ DACPAC found at: $dacpacPath"
+            Write-Host "DACPAC found at: $dacpacPath"
           }
           
           # Validate connection string secret exists
@@ -190,19 +189,19 @@ jobs:
           # Environment-specific validation
           switch ("${{ matrix.environment }}") {
             "DEV2" { 
-              Write-Host "🔧 DEV2 environment - relaxed validation"
+              Write-Host "DEV2 environment - relaxed validation"
             }
             { $_ -like "*ALL" } {
-              Write-Host "🔒 Production-like environment - strict validation"
+              Write-Host "Production-like environment - strict validation"
             }
             default {
-              Write-Host "🔍 Standard validation for ${{ matrix.environment }}"
+              Write-Host "Standard validation for ${{ matrix.environment }}"
             }
           }
           
-          Write-Host "✅ Pre-deployment validation completed"
+          Write-Host "Pre-deployment validation completed"
       
-      - name: 🗄️ Database Backup
+      - name: Database Backup
         if: matrix.environment != 'DEV2'  # Skip backup for DEV2
         shell: powershell
         run: |
@@ -210,36 +209,21 @@ jobs:
           
           # Simulate backup process
           Start-Sleep -Seconds 2
-          Write-Host "✅ Backup completed for ${{ matrix.database }}"
+          Write-Host "Backup completed for ${{ matrix.database }}"
       
-      - name: 🚀 Deploy Database - ${{ matrix.database }}
-        shell: powershell
-        run: |
-          Write-Host "Deploying ${{ matrix.database }} to ${{ matrix.environment }}"
-          
-          # Simulate deployment (replace with actual deployment action)
-          Write-Host "📦 Deploying DACPAC: ./artifacts/${{ matrix.database }}.dacpac"
-          Write-Host "🔗 Connection: ${{ matrix.environment }}_${{ matrix.database }}_CONNECTION_STRING"
-          Write-Host "⏱️ Timeout: 300 seconds"
-          
-          # Simulate deployment time
-          Start-Sleep -Seconds 3
-          Write-Host "✅ Database deployment completed successfully"
-          
-          # Uncomment and modify this section to use your actual deployment action:
-          # - name: 🚀 Deploy Database - ${{ matrix.database }}
-          #   uses: ./.github/actions/dacpac-deployment
-          #   with:
-          #     database-name: ${{ matrix.database }}
-          #     environment: ${{ matrix.environment }}
-          #     connection-string: ${{ secrets[format('{0}_{1}_CONNECTION_STRING', matrix.environment, matrix.database)] }}
-          #     dacpac-path: './artifacts/${{ matrix.database }}.dacpac'
-          #     sql-timeout: '300'
-          #     backup-before-deploy: 'true'
-          #   env:
-          #     AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Deploy Database - ${{ matrix.database }}
+        uses: ./.github/actions/dacpac-deployment
+        with:
+          database-name: ${{ matrix.database }}
+          environment: ${{ matrix.environment }}
+          connection-string: ${{ secrets[format('{0}_{1}_CONNECTION_STRING', matrix.environment, matrix.database)] }}
+          dacpac-path: './artifacts/${{ matrix.database }}.dacpac'
+          sql-timeout: '300'
+          backup-before-deploy: 'true'
+        env:
+          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
       
-      - name: 🧪 Post-deployment Testing
+      - name: Post-deployment Testing
         shell: powershell
         run: |
           Write-Host "Running post-deployment tests for ${{ matrix.database }} in ${{ matrix.environment }}"
@@ -247,35 +231,35 @@ jobs:
           # Environment-specific testing
           switch ("${{ matrix.environment }}") {
             "DEV2" { 
-              Write-Host "🔧 Running basic smoke tests for DEV2"
+              Write-Host "Running basic smoke tests for DEV2"
             }
             { $_ -like "*QA*" } {
-              Write-Host "🧪 Running comprehensive QA tests"
+              Write-Host "Running comprehensive QA tests"
             }
             { $_ -like "*UAT*" } {
-              Write-Host "👥 Running user acceptance tests"
+              Write-Host "Running user acceptance tests"
             }
             default {
-              Write-Host "🔍 Running standard post-deployment tests"
+              Write-Host "Running standard post-deployment tests"
             }
           }
           
           # Simulate testing
           Start-Sleep -Seconds 2
-          Write-Host "✅ Post-deployment testing completed for ${{ matrix.database }}"
+          Write-Host "Post-deployment testing completed for ${{ matrix.database }}"
       
-      - name: 📊 Stage Summary
+      - name: Stage Summary
         if: always()
         shell: powershell
         run: |
-          $status = if ("${{ job.status }}" -eq "success") { "✅ SUCCESS" } else { "❌ FAILED" }
+          $status = if ("${{ job.status }}" -eq "success") { "SUCCESS" } else { "FAILED" }
           Write-Host "Stage ${{ matrix.stage }} - Status: $status"
           
-          echo "### 🎯 Stage Result: ${{ matrix.stage }}" >> $env:GITHUB_STEP_SUMMARY
-          echo "**Status:** $status" >> $env:GITHUB_STEP_SUMMARY
-          echo "**Environment:** ${{ matrix.environment }}" >> $env:GITHUB_STEP_SUMMARY
-          echo "**Database:** ${{ matrix.database }}" >> $env:GITHUB_STEP_SUMMARY
-          echo "**Completed:** $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss UTC')" >> $env:GITHUB_STEP_SUMMARY
+          echo "### Stage Result: ${{ matrix.stage }}" >> $env:GITHUB_STEP_SUMMARY
+          echo "Status: $status" >> $env:GITHUB_STEP_SUMMARY
+          echo "Environment: ${{ matrix.environment }}" >> $env:GITHUB_STEP_SUMMARY
+          echo "Database: ${{ matrix.database }}" >> $env:GITHUB_STEP_SUMMARY
+          echo "Completed: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss UTC')" >> $env:GITHUB_STEP_SUMMARY
           echo "" >> $env:GITHUB_STEP_SUMMARY
 
   # Final comprehensive summary
@@ -284,7 +268,7 @@ jobs:
     runs-on: windows-latest
     if: always()
     steps:
-      - name: 📋 Complete Deployment Summary
+      - name: Complete Deployment Summary
         shell: powershell
         run: |
           $totalEnvs = "${{ needs.setup-matrix.outputs.total-environments }}"
@@ -292,27 +276,31 @@ jobs:
           $approvalStatus = "${{ needs.approve-all-environments.result }}"
           $deploymentStatus = "${{ needs.deploy-all-database-stages.result }}"
           
-          echo "# 🚀 Complete Multi-Environment Deployment Summary" >> $env:GITHUB_STEP_SUMMARY
+          echo "# Complete Multi-Environment Deployment Summary" >> $env:GITHUB_STEP_SUMMARY
           echo "" >> $env:GITHUB_STEP_SUMMARY
-          echo "## 📊 Overall Statistics" >> $env:GITHUB_STEP_SUMMARY
-          echo "**Total Environments:** $totalEnvs" >> $env:GITHUB_STEP_SUMMARY
-          echo "**Total Databases:** $totalDbs" >> $env:GITHUB_STEP_SUMMARY
-          echo "**Approval Status:** $(if ($approvalStatus -eq 'success') { '✅ All Approved' } else { '❌ ' + $approvalStatus })" >> $env:GITHUB_STEP_SUMMARY
-          echo "**Deployment Status:** $(if ($deploymentStatus -eq 'success') { '✅ All Successful' } elseif ($deploymentStatus -eq 'failure') { '❌ Some Failed' } elseif ($deploymentStatus -eq 'skipped') { '⏭️ Skipped' } else { '⚠️ ' + $deploymentStatus })" >> $env:GITHUB_STEP_SUMMARY
+          echo "## Overall Statistics" >> $env:GITHUB_STEP_SUMMARY
+          echo "Total Environments: $totalEnvs" >> $env:GITHUB_STEP_SUMMARY
+          echo "Total Databases: $totalDbs" >> $env:GITHUB_STEP_SUMMARY
+          
+          $approvalText = if ($approvalStatus -eq 'success') { 'All Approved' } else { $approvalStatus }
+          echo "Approval Status: $approvalText" >> $env:GITHUB_STEP_SUMMARY
+          
+          $deploymentText = if ($deploymentStatus -eq 'success') { 'All Successful' } elseif ($deploymentStatus -eq 'failure') { 'Some Failed' } elseif ($deploymentStatus -eq 'skipped') { 'Skipped' } else { $deploymentStatus }
+          echo "Deployment Status: $deploymentText" >> $env:GITHUB_STEP_SUMMARY
           echo "" >> $env:GITHUB_STEP_SUMMARY
           
           # Show all environments processed
           $environmentList = '${{ needs.setup-matrix.outputs.environment-list }}' | ConvertFrom-Json
-          echo "## 🌍 Environments Processed" >> $env:GITHUB_STEP_SUMMARY
+          echo "## Environments Processed" >> $env:GITHUB_STEP_SUMMARY
           $environmentList | ForEach-Object {
-            $statusIcon = if ($deploymentStatus -eq 'success') { '✅' } elseif ($deploymentStatus -eq 'failure') { '⚠️' } else { '❓' }
-            echo "- **$_** $statusIcon" >> $env:GITHUB_STEP_SUMMARY
+            $statusIcon = if ($deploymentStatus -eq 'success') { 'SUCCESS' } elseif ($deploymentStatus -eq 'failure') { 'WARNING' } else { 'UNKNOWN' }
+            echo "- $_ : $statusIcon" >> $env:GITHUB_STEP_SUMMARY
           }
           echo "" >> $env:GITHUB_STEP_SUMMARY
           
           # Show deployment stages summary
           if ($deploymentStatus -ne 'skipped') {
-            echo "## 🎭 Deployment Stages Summary" >> $env:GITHUB_STEP_SUMMARY
+            echo "## Deployment Stages Summary" >> $env:GITHUB_STEP_SUMMARY
             $databaseMatrix = '${{ needs.setup-matrix.outputs.database-matrix }}' | ConvertFrom-Json
             
             # Group by environment
@@ -320,28 +308,28 @@ jobs:
             foreach ($envGroup in $envGroups) {
               echo "### $($envGroup.Name)" >> $env:GITHUB_STEP_SUMMARY
               $envGroup.Group | ForEach-Object {
-                $statusIcon = if ($deploymentStatus -eq 'success') { '✅' } elseif ($deploymentStatus -eq 'failure') { '⚠️' } else { '❓' }
-                echo "- **$($_.stage)** $statusIcon" >> $env:GITHUB_STEP_SUMMARY
+                $statusIcon = if ($deploymentStatus -eq 'success') { 'SUCCESS' } elseif ($deploymentStatus -eq 'failure') { 'WARNING' } else { 'UNKNOWN' }
+                echo "- $($_.stage) : $statusIcon" >> $env:GITHUB_STEP_SUMMARY
               }
               echo "" >> $env:GITHUB_STEP_SUMMARY
             }
           }
           
-          echo "## 📈 Summary" >> $env:GITHUB_STEP_SUMMARY
+          echo "## Summary" >> $env:GITHUB_STEP_SUMMARY
           if ($deploymentStatus -eq 'success') {
-            echo "🎉 **All environments and databases deployed successfully!**" >> $env:GITHUB_STEP_SUMMARY
-            echo "- ✅ All $totalEnvs environments processed" >> $env:GITHUB_STEP_SUMMARY
-            echo "- ✅ All $totalDbs databases deployed" >> $env:GITHUB_STEP_SUMMARY
-            echo "- 🔍 Review individual stage logs for details" >> $env:GITHUB_STEP_SUMMARY
+            echo "All environments and databases deployed successfully!" >> $env:GITHUB_STEP_SUMMARY
+            echo "- All $totalEnvs environments processed" >> $env:GITHUB_STEP_SUMMARY
+            echo "- All $totalDbs databases deployed" >> $env:GITHUB_STEP_SUMMARY
+            echo "- Review individual stage logs for details" >> $env:GITHUB_STEP_SUMMARY
           } elseif ($deploymentStatus -eq 'failure') {
-            echo "⚠️ **Some deployments encountered issues**" >> $env:GITHUB_STEP_SUMMARY
-            echo "- 📋 Check individual stage logs for failed deployments" >> $env:GITHUB_STEP_SUMMARY
-            echo "- 🔧 Fix issues and re-run workflow" >> $env:GITHUB_STEP_SUMMARY
-            echo "- 📞 Contact DevOps team if assistance needed" >> $env:GITHUB_STEP_SUMMARY
+            echo "Some deployments encountered issues" >> $env:GITHUB_STEP_SUMMARY
+            echo "- Check individual stage logs for failed deployments" >> $env:GITHUB_STEP_SUMMARY
+            echo "- Fix issues and re-run workflow" >> $env:GITHUB_STEP_SUMMARY
+            echo "- Contact DevOps team if assistance needed" >> $env:GITHUB_STEP_SUMMARY
           } elseif ($deploymentStatus -eq 'skipped') {
-            echo "⏭️ **Deployment was skipped**" >> $env:GITHUB_STEP_SUMMARY
-            echo "- 🔐 Likely due to approval rejection in one or more environments" >> $env:GITHUB_STEP_SUMMARY
-            echo "- 🔄 Re-run workflow after addressing approval requirements" >> $env:GITHUB_STEP_SUMMARY
+            echo "Deployment was skipped" >> $env:GITHUB_STEP_SUMMARY
+            echo "- Likely due to approval rejection in one or more environments" >> $env:GITHUB_STEP_SUMMARY
+            echo "- Re-run workflow after addressing approval requirements" >> $env:GITHUB_STEP_SUMMARY
           }
 
   # Show complete configuration
@@ -350,29 +338,30 @@ jobs:
     needs: setup-matrix
     if: github.event_name == 'workflow_dispatch'
     steps:
-      - name: 📋 Complete Environment Configuration
+      - name: Complete Environment Configuration
         shell: powershell
         run: |
-          echo "# 📋 Complete Environment Configuration" >> $env:GITHUB_STEP_SUMMARY
+          echo "# Complete Environment Configuration" >> $env:GITHUB_STEP_SUMMARY
           echo "" >> $env:GITHUB_STEP_SUMMARY
-          echo "## 🎯 All Environments and Required Setup" >> $env:GITHUB_STEP_SUMMARY
+          echo "## All Environments and Required Setup" >> $env:GITHUB_STEP_SUMMARY
           
           $environmentList = '${{ needs.setup-matrix.outputs.environment-list }}' | ConvertFrom-Json
           $environmentList | ForEach-Object {
             echo "### $_" >> $env:GITHUB_STEP_SUMMARY
-            echo "- **Approval Environment:** \`$_-approval\`" >> $env:GITHUB_STEP_SUMMARY
-            echo "- **Required Secrets Pattern:** \`$($_)_[DATABASE]_CONNECTION_STRING\`" >> $env:GITHUB_STEP_SUMMARY
-            echo "- **Deployment:** Each database as separate stage" >> $env:GITHUB_STEP_SUMMARY
-            echo "- **Backup:** $(if ($_ -eq 'DEV2') { 'Disabled' } else { 'Enabled' })" >> $env:GITHUB_STEP_SUMMARY
+            echo "- Approval Environment: $_-approval" >> $env:GITHUB_STEP_SUMMARY
+            echo "- Required Secrets Pattern: $($_)_[DATABASE]_CONNECTION_STRING" >> $env:GITHUB_STEP_SUMMARY
+            echo "- Deployment: Each database as separate stage" >> $env:GITHUB_STEP_SUMMARY
+            $backupStatus = if ($_ -eq 'DEV2') { 'Disabled' } else { 'Enabled' }
+            echo "- Backup: $backupStatus" >> $env:GITHUB_STEP_SUMMARY
             echo "" >> $env:GITHUB_STEP_SUMMARY
           }
           
-          echo "## 🔧 Required GitHub Setup" >> $env:GITHUB_STEP_SUMMARY
+          echo "## Required GitHub Setup" >> $env:GITHUB_STEP_SUMMARY
           echo "### Environments to create:" >> $env:GITHUB_STEP_SUMMARY
           $environmentList | ForEach-Object {
-            echo "- \`$_-approval\` (with required reviewers)" >> $env:GITHUB_STEP_SUMMARY
+            echo "- $_-approval (with required reviewers)" >> $env:GITHUB_STEP_SUMMARY
           }
           echo "" >> $env:GITHUB_STEP_SUMMARY
           echo "### Secrets needed:" >> $env:GITHUB_STEP_SUMMARY
-          echo "- \`AZURE_CREDENTIALS\`" >> $env:GITHUB_STEP_SUMMARY
+          echo "- AZURE_CREDENTIALS" >> $env:GITHUB_STEP_SUMMARY
           echo "- Connection strings for each environment-database combination" >> $env:GITHUB_STEP_SUMMARY

@@ -1,9 +1,9 @@
 name: Database Deployment Matrix - All Environments
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
   workflow_dispatch:
     inputs:
       deploy_all_environments:
@@ -98,7 +98,8 @@ jobs:
           foreach ($environment in $allEnvironments) {
             $dbCount = $config.$environment.Database.Count
             $dbList = $config.$environment.Database -join ", "
-            echo "- **$environment**: $dbCount database(s) - $dbList" >> $env:GITHUB_STEP_SUMMARY
+            $line = "- **$environment**: $dbCount databases - $dbList"
+            echo $line >> $env:GITHUB_STEP_SUMMARY
           }
 
   # Environment-level approvals (parallel approvals for all environments)
